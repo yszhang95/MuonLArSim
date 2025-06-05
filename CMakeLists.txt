@@ -8,6 +8,7 @@ add_executable(MuonLArSim
     DetectorConstruction.cc
     PrimaryGeneratorAction.cc
     MySensitiveDetector.cc
+    MyPhysicsList.cc
 )
 
 target_include_directories(MuonLArSim PRIVATE ${Geant4_INCLUDE_DIRS})

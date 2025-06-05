@@ -6,6 +6,9 @@
 #include "G4SystemOfUnits.hh"
 #include "G4SDManager.hh"
 #include "MySensitiveDetector.hh"
+#include "G4Region.hh"
+#include "G4UserLimits.hh"
+
 
 G4VPhysicalVolume* DetectorConstruction::Construct() {
     G4NistManager* nist = G4NistManager::Instance();
@@ -28,6 +31,21 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
     auto larSD = new MySensitiveDetector("LArSD");
     sdManager->AddNewDetector(larSD);
     logicTarget->SetSensitiveDetector(larSD);
+
+    // Create a region for the LAr volume
+    G4Region* larRegion = new G4Region("LArRegion");
+
+    // Attach the region to the logical volume
+    logicTarget->SetRegion(larRegion);
+    larRegion->AddRootLogicalVolume(logicTarget);
+
+    // Define a max step length (e.g., 5 mm)
+    G4double maxStep = 5 * mm;
+
+    // Assign user limits to the region
+    // larRegion->SetUserLimits(new G4UserLimits(maxStep));
+    logicTarget->SetUserLimits(new G4UserLimits(maxStep));
+
 
     return physWorld;
 }

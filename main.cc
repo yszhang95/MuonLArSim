@@ -5,6 +5,7 @@
 
 #include "DetectorConstruction.hh"
 #include "PrimaryGeneratorAction.hh"
+#include "MyPhysicsList.hh"
 #include "QGSP_BERT.hh"
 
 int main(int argc, char** argv) {
@@ -16,7 +17,8 @@ int main(int argc, char** argv) {
     auto runManager = new G4RunManager();
 
     runManager->SetUserInitialization(new DetectorConstruction());
-    runManager->SetUserInitialization(new QGSP_BERT());
+    runManager->SetUserInitialization(new MyPhysicsList());
+    // runManager->SetUserInitialization(new QGSP_BERT());
     runManager->SetUserAction(new PrimaryGeneratorAction());
 
     runManager->Initialize();
