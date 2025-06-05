@@ -1,0 +1,7 @@
+/vis/open OGL
+/vis/drawVolume
+/vis/viewer/setStyle wireframe
+/vis/scene/add/trajectories smooth
+/vis/scene/endOfEventAction accumulate
+/run/initialize
+/run/beamOn 1
