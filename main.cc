@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
     runManager->SetUserAction(new PrimaryGeneratorAction());
 
     runManager->Initialize();
-    runManager->BeamOn(20);  // Run 20 events
+    runManager->BeamOn(50);  // Run 20 events
 
     delete runManager;
     return 0;
