@@ -46,7 +46,7 @@ def convert_csv_to_hdf5(csv_file, hdf5_file):
     df = pd.read_csv(csv_file)
 
     # Filter for muons (|PDG_ID| == 13)
-    df = df[df['PDG_ID'].abs() == 13].copy()
+    df = df[(df['PDG_ID'].abs() == 13) | (df['PDG_ID'].abs() == 11)].copy()
 
     # Calculated fields
     df['vertex_id'] = df['EventID'] + 1000
@@ -110,4 +110,5 @@ def convert_csv_to_hdf5(csv_file, hdf5_file):
         f.create_dataset('segments', data=data)
 
 # Example usage:
-convert_csv_to_hdf5('muon_steps.csv', 'particle_gun_mu_only.hdf5')
+# convert_csv_to_hdf5('muon_steps.csv', 'particle_gun_mu_only.hdf5')
+convert_csv_to_hdf5('muon_steps_5GeV.csv', 'particle_gun_mu_5GeV.hdf5')

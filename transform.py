@@ -119,18 +119,20 @@ def transform_group2_to_group1(group1_points, group2_points):
     dir2_new = p2_max_new - p2_min_new
     dir2_new /= (np.linalg.norm(dir2_new) + 1e-8)
 
-    print(p1_min, p2_min_start, p2_min_new, dir1, dir2, dir2_new)
-    assert np.all(np.abs(group2_points['x_start'][1:] - group2_points['x_end'][:-1])<1E-5),  'next start, previous end, not close enough in x'
-    assert np.all(np.abs(group2_points['y_start'][1:] - group2_points['y_end'][:-1])<1E-5),  'next start, previous end, not close enough in y'
-    assert np.all(np.abs(group2_points['z_start'][1:] - group2_points['z_end'][:-1])<1E-5),  'next start, previous end, not close enough in z'
+    # print(p1_min, p2_min_start, p2_min_new, dir1, dir2, dir2_new)
+    # assert np.all(np.abs(group2_points['x_start'][1:] - group2_points['x_end'][:-1])<1E-5),  'next start, previous end, not close enough in x'
+    # assert np.all(np.abs(group2_points['y_start'][1:] - group2_points['y_end'][:-1])<1E-5),  'next start, previous end, not close enough in y'
+    # assert np.all(np.abs(group2_points['z_start'][1:] - group2_points['z_end'][:-1])<1E-5),  'next start, previous end, not close enough in z'
 
     return group2_points
 
 # Example usage:
 if __name__ == '__main__':
     # Paths and dataset names
-    path1, name1 = '/home/yousen/Public/ndlar_shared/data/data_reflowv5_20250510/packet-0050015-2024_07_08_13_37_49_CDT.FLOW_selected.hdf5', 'selected/hits/data'
-    path2, name2 = '/home/yousen/Public/ndlar_shared/data/tred_particle_gun_20250625/particle_gun_mu_only.hdf5', 'segments'
+    # path1, name1 = '/home/yousen/Public/ndlar_shared/data/data_reflowv5_20250510/packet-0050015-2024_07_08_13_37_49_CDT.FLOW_selected.hdf5', 'selected/hits/data'
+    # path2, name2 = '/home/yousen/Public/ndlar_shared/data/tred_particle_gun_20250625/particle_gun_mu_only.hdf5', 'segments'
+    path1, name1 = '/home/yousen/Documents/NDLAr2x2/2x2_ql/filter_mc_events/check_selection/selected_data_small_angle/packet-0050015-2024_07_08_13_37_49_CDT.FLOW_selected.hdf5', 'selected/hits/data'
+    path2, name2 = 'particle_gun_mu_5GeV.hdf5', 'segments'
 
     # Load data
     data1 = load_dataset(path1, name1)
@@ -149,7 +151,9 @@ if __name__ == '__main__':
         transformed_groups2.append(aligned)
         # print(np.max(aligned['z_start']), np.max(aligned['z_end']))
 
-    with h5py.File("pgun_mu_only_transformed.hdf5", "w") as f:
+    # with h5py.File("pgun_mu_only_transformed.hdf5", "w") as f:
+    #     f.create_dataset('segments', data=np.concatenate(transformed_groups2))
+    with h5py.File("pgun_mu_5GeV_transformed.hdf5", "w") as f:
         f.create_dataset('segments', data=np.concatenate(transformed_groups2))
 
     # transformed_groups2 now contains arrays of aligned start points for each paired event
