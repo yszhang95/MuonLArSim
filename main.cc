@@ -6,23 +6,25 @@
 #include "DetectorConstruction.hh"
 #include "PrimaryGeneratorAction.hh"
 #include "MyPhysicsList.hh"
-#include "QGSP_BERT.hh"
 
 int main(int argc, char** argv) {
-    G4UIExecutive* ui = nullptr;
-    if (argc == 1) {
-        ui = new G4UIExecutive(argc, argv);
-    }
-
     auto runManager = new G4RunManager();
 
     runManager->SetUserInitialization(new DetectorConstruction());
     runManager->SetUserInitialization(new MyPhysicsList());
     // runManager->SetUserInitialization(new QGSP_BERT());
     runManager->SetUserAction(new PrimaryGeneratorAction());
-
     runManager->Initialize();
-    runManager->BeamOn(50);  // Run 20 events
+
+    G4UImanager* UImanager = G4UImanager::GetUIpointer();
+    if (argc == 2) {
+        // Execute macro
+        G4String command = "/control/execute ";
+        G4String fileName = argv[1];
+        UImanager->ApplyCommand(command + fileName);
+    } else {
+        runManager->BeamOn(50);  // Run 50 events
+    }
 
     delete runManager;
     return 0;
