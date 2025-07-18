@@ -2,7 +2,6 @@
 #define MY_SENSITIVE_DETECTOR_HH
 
 #include "G4VSensitiveDetector.hh"
-#include <fstream>
 
 class G4Step;
 class G4TouchableHistory;
@@ -14,8 +13,6 @@ public:
 
     virtual G4bool ProcessHits(G4Step*, G4TouchableHistory*) override;
 
-private:
-    std::ofstream outFile;
 };
 
 #endif
