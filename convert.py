@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import h5py
+import argparse
+import os
 
 # Define the structured dtype
 segment_dtype = np.dtype([
@@ -42,11 +44,31 @@ segment_dtype = np.dtype([
     ('z',            np.float32),
 ], align=True)
 
-def convert_csv_to_hdf5(csv_file, hdf5_file):
-    df = pd.read_csv(csv_file)
 
-    # Filter for muons (|PDG_ID| == 13)
+def is_row_all_strings(row):
+    return all(isinstance(x, str) and not x.strip().isdigit() for x in row)
+
+
+def convert_csv_to_hdf5(csv_file, hdf5_file, event_ids=None):
+    first_row = pd.read_csv(csv_file, nrows=1, comment='#', names=None)\
+                  .iloc[0].tolist()
+    if is_row_all_strings(first_row):
+        df = pd.read_csv(csv_file, comment='#')
+    else:
+        names = ['EventID', 'TrackID', 'StepID',
+                 'x_start(cm)', 'y_start(cm)', 'z_start(cm)', 't0_start(us)',
+                 'x_end(cm)', 'y_end(cm)', 'z_end(cm)', 't0_end(us)',
+                 'Edep(MeV)', 'KineticE(MeV)', 'StepLength(cm)',
+                 'PDG_ID', 'ParentID', 'ProcessName']
+        df = pd.read_csv(csv_file, comment='#', names=names)
+
+    # Filter for muons and electrons
     df = df[(df['PDG_ID'].abs() == 13) | (df['PDG_ID'].abs() == 11)].copy()
+
+    if event_ids is not None:
+        assert len(event_ids) == len(np.unique(df['EventID']))
+        for i in range(len(event_ids)):
+            df.loc[df['EventID'] == i, 'EventID'] = event_ids[i]
 
     # Calculated fields
     df['vertex_id'] = df['EventID'] + 1000
@@ -111,4 +133,63 @@ def convert_csv_to_hdf5(csv_file, hdf5_file):
 
 # Example usage:
 # convert_csv_to_hdf5('muon_steps.csv', 'particle_gun_mu_only.hdf5')
-convert_csv_to_hdf5('muon_steps_5GeV.csv', 'particle_gun_mu_5GeV.hdf5')
+# convert_csv_to_hdf5('muon_steps_5GeV.csv', 'particle_gun_mu_5GeV.hdf5')
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Process data from csv.")
+    parser.add_argument("csv_file", help="Path to the CSV file.")
+    parser.add_argument("h5out", help="Path to the output HDF5 file (required).")
+    parser.add_argument("--hdf5_source", required=False,
+                        help="Path to the source HDF5 file (optional).")
+
+    parser.add_argument("--eventid_as_runid", help="event id as run id"
+                        "(optional). Activated by default. Use "
+                        "--no_eventid_as_runid to disable.",
+                        dest='eventid_as_runid', action='store_true',
+                        default=True)
+    parser.add_argument("--no_eventid_as_runid",
+                        help="not using event id as run id (optional). "
+                        "False by default.",
+                        dest='no_eventid_as_runid', action='store_true',
+                        default=False)
+
+    args = parser.parse_args()
+    fh5 = args.h5out
+    csv = args.csv_file
+
+    if args.hdf5_source:
+        try:
+            fin = h5py.File(args.hdf5_source)
+            event_ids = fin['/picked/event_id']
+        except FileNotFoundError:
+            print(f"Error: HDF5 file not found at {args.hdf5_file}")
+            return
+    else:
+        event_ids = None
+
+    if args.no_eventid_as_runid:
+        convert_csv_to_hdf5(csv, fh5, event_ids)
+    elif (event_ids is not None) and args.eventid_as_runid:
+        print("Using event ids from source HDF5 as run ids.")
+        # each event id corresponds to one run id
+        # run id must be indicated in the format of run_{event_id}_{csv}
+        # the example input should looks like mu_{estr}GeV
+        # csvin looks like run_{event_id}_mu_{estr}GeV
+        # csvin is prefix + args.csv, with directory and basename settled down
+        # using os.path
+        # fh5 must be replaced with postfix run_id
+        for i in event_ids:
+            csvin = os.path.join(os.path.dirname(csv),
+                                 "run_" + str(i) + "_"
+                                 + os.path.basename(csv))
+            fh5out = fh5.replace(".hdf5", f"_event_id{i}.hdf5")
+            fh5out = fh5out.replace(".h5", f"_event_id{i}.h5")
+            print("Processing file:", csvin, fh5out, "for event_id", i)
+            convert_csv_to_hdf5(csvin, fh5out, None)
+
+    # Add your processing logic here using event_ids and args.csv_file
+
+
+if __name__ == "__main__":
+    main()

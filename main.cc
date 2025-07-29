@@ -21,8 +21,6 @@ int main(int argc, char** argv) {
 
     G4UImanager* UImanager = G4UImanager::GetUIpointer();
     if (argc == 2) {
-        G4AnalysisManager::Instance()->SetDefaultFileType("csv");  // or "root", "xml"
-
         // Execute macro
         G4String command = "/control/execute ";
         G4String fileName = argv[1];
