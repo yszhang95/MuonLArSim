@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
-
+import sys
+import os
 
 def load_dataset(path, dataset_name):
     """
@@ -29,13 +30,21 @@ def compute_endpoints_and_direction(points):
 # Example usage:
 if __name__ == '__main__':
     # Paths and dataset names
-    # path, name = '/home/yousen/Documents/NDLAr2x2/2x2_ql/filter_mc_events/check_selection/selected_data_small_angle/packet-0050015-2024_07_08_13_37_49_CDT.FLOW_selected.hdf5', 'picked/points'
-    # path, name = '/home/yousen/Public/ndlar_shared/data_reflowv5_20250708/packet-0050015-2024_07_08_13_37_49_CDT.FLOW_selected.hdf5', 'picked/points'
-    path, name = '/home/yousen/Public/ndlar_shared/data_reflowv5_20250722/packet-0050015-2024_07_08_13_37_49_CDT.FLOW_selected.hdf5', 'picked/points'
+    path = sys.argv[1] if len(sys.argv) > 1 else None
+    if path is None:
+        print("Please provide the HDF5 file path as a command line argument.")
+        sys.exit(1)
+    name = sys.argv[2] if len(sys.argv) > 2 else "picked/points/data"
+    # odir = sys.argv[3] if len(sys.argv) > 3 else "."
+    odir = os.path.basename(path)
+    odir = os.path.splitext(odir)[0]
+    os.makedirs(odir, exist_ok=True)
 
     # Load data
     points = load_dataset(path, name)
-    event_ids = load_dataset(path, "picked/event_id")
+    event_ids = load_dataset(path, "picked/event_id/data")
+    io_group = load_dataset(path, "picked/io_group/data")
+    eids = event_ids*10 + io_group
     pts_min, pts_max, directions = compute_endpoints_and_direction(points)
 
     # Transform each group2 to corresponding group1 by position
@@ -45,7 +54,7 @@ if __name__ == '__main__':
 
     cmd = "/run/initialize"
     for pt_min, pt_max, direction, event_id in \
-            zip(pts_min, pts_max, directions, event_ids):
+            zip(pts_min, pts_max, directions, eids):
         # print(pt_min, pt_max, direction)
         macro = f"""
 # Configure particle
@@ -54,9 +63,9 @@ if __name__ == '__main__':
 /gun/position {pt_min[0]} {pt_min[1]} {pt_min[2]} cm
 /gun/direction {direction[0]} {direction[1]} {direction[2]}
 
-/analysis/setFileName run_{event_id}_mu_{estr}GeV
+/analysis/setFileName {odir}/run_{event_id}_mu_{estr}GeV
 /run/beamOn 30
 """
         cmd += macro
-    with open(f"pgun_mu_{estr}GeV.mac", "w") as f:
+    with open(os.path.join(odir, f"pgun_mu_{estr}GeV.mac"), "w") as f:
         f.write(cmd)

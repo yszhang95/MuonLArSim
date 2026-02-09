@@ -44,14 +44,30 @@ segment_dtype = np.dtype([
     ('z',            np.float32),
 ], align=True)
 
+# hard coded TPC borders and directions
+tpc_borders = [
+  [3.069, 33.34125, -62.076, 62.076, 2.462, 64.538],
+  [33.65875, 63.931, -62.076, 62.076, 2.462, 64.538],
+  [3.069, 33.34125, -62.076, 62.076, -64.538, -2.462],
+  [33.65875, 63.931, -62.076, 62.076, -64.538, -2.462],
+  [-63.931, -33.65875, -62.076, 62.076, 2.462, 64.538],
+  [-33.34125, -3.069, -62.076, 62.076, 2.462, 64.538],
+  [-63.931, -33.65875, -62.076, 62.076, -64.538, -2.462],
+  [-33.34125, -3.069, -62.076, 62.076, -64.538, -2.462]
+] # xmin, max, ymin, ymax, zmin, zmax
+tpc_direction = [-1, 1, -1, 1, -1, 1, -1, 1]
+
 
 def is_row_all_strings(row):
     return all(isinstance(x, str) and not x.strip().isdigit() for x in row)
 
 
-def convert_csv_to_hdf5(csv_file, hdf5_file, event_ids=None):
+def convert_csv_to_hdf5(csv_file, hdf5_file, event_ids=None, **kwargs):
     first_row = pd.read_csv(csv_file, nrows=1, comment='#', names=None)\
                   .iloc[0].tolist()
+
+    xoffset = kwargs.get('xoffset', None)
+
     if is_row_all_strings(first_row):
         df = pd.read_csv(csv_file, comment='#')
     else:
@@ -69,6 +85,31 @@ def convert_csv_to_hdf5(csv_file, hdf5_file, event_ids=None):
         assert len(event_ids) == len(np.unique(df['EventID']))
         for i in range(len(event_ids)):
             df.loc[df['EventID'] == i, 'EventID'] = event_ids[i]
+
+    # potential offset on x
+    direction = np.zeros(len(df), dtype=np.int8)
+    x = (df['x_start(cm)'] + df['x_end(cm)']) / 2.
+    tol = 1E-4
+    for i, border in enumerate(tpc_borders):
+        # Check which segments are within this border range
+        mask = (x >= border[0]-tol) & (x <= border[1]+tol) # tolerance
+        direction[mask] = tpc_direction[i]
+    if np.any(direction == 0):
+        raise ValueError("Some segments are not within TPC borders. "
+                         "Check the x_start and x_end values.")
+    if xoffset is not None and isinstance(xoffset, (int, float)):
+        # m1 = direction == 1
+        # m2 = direction == -1
+        # if np.any(m1):
+        #     print('debug for direction == 1', df['x_start(cm)'][m1].iloc[0],
+        #           df['x_end(cm)'][m1].iloc[0], 'bounds', tpc_borders[1][:2],
+        #           tpc_borders[5][:2])
+        # if np.any(m2):
+        #     print('debug for direction == -1', df['x_start(cm)'][m2].iloc[0],
+        #           df['x_end(cm)'][m2].iloc[0], 'bounds', tpc_borders[0][:2],
+        #           tpc_borders[4][:2])
+        df['x_start(cm)'] += xoffset * direction
+        df['x_end(cm)'] += xoffset * direction
 
     # Calculated fields
     df['vertex_id'] = df['EventID'] + 1000
@@ -153,6 +194,8 @@ def main():
                         "False by default.",
                         dest='no_eventid_as_runid', action='store_true',
                         default=False)
+    parser.add_argument("--xoffset", type=float, default=0.0,
+                        help="Offset for x coordinate (optional). Default is 0.0 cm.")
 
     args = parser.parse_args()
     fh5 = args.h5out
@@ -161,7 +204,9 @@ def main():
     if args.hdf5_source:
         try:
             fin = h5py.File(args.hdf5_source)
-            event_ids = fin['/picked/event_id']
+            event_ids = fin['/picked/event_id/data'][:]
+            io_group = fin['/picked/io_group/data'][:]
+            event_ids = event_ids*10 + io_group
         except FileNotFoundError:
             print(f"Error: HDF5 file not found at {args.hdf5_file}")
             return
@@ -169,7 +214,7 @@ def main():
         event_ids = None
 
     if args.no_eventid_as_runid:
-        convert_csv_to_hdf5(csv, fh5, event_ids)
+        convert_csv_to_hdf5(csv, fh5, event_ids, xoffset=args.xoffset)
     elif (event_ids is not None) and args.eventid_as_runid:
         print("Using event ids from source HDF5 as run ids.")
         # each event id corresponds to one run id
@@ -186,7 +231,8 @@ def main():
             fh5out = fh5.replace(".hdf5", f"_event_id{i}.hdf5")
             fh5out = fh5out.replace(".h5", f"_event_id{i}.h5")
             print("Processing file:", csvin, fh5out, "for event_id", i)
-            convert_csv_to_hdf5(csvin, fh5out, None)
+            convert_csv_to_hdf5(csvin, fh5out, None,
+                                xoffset=args.xoffset)
 
     # Add your processing logic here using event_ids and args.csv_file
 
