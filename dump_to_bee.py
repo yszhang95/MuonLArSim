@@ -6,6 +6,7 @@ import argparse
 import os
 import h5py
 import numpy as np
+import zipfile
 
 def convert_hdf5_to_json(hdf5_file, output_prefix, event_ids=None):
     """
@@ -132,15 +133,46 @@ def convert_hdf5_to_json(hdf5_file, output_prefix, event_ids=None):
             print(f"Error writing JSON file {json_file}: {e}")
 
 
+def zip_output_directory(output_prefix):
+    """
+    Compresses all files recursively within output_prefix/data/ into
+    output_prefix/data.zip.
+    """
+    data_dir = os.path.join(output_prefix, "data")
+    zip_file_path = os.path.join(output_prefix, f"{output_prefix}.zip")
+
+    if not os.path.isdir(data_dir):
+        print(f"Error: Data directory not found at {data_dir}. Skipping zip.")
+        return
+
+    print(f"Creating zip archive at {zip_file_path} from contents of {data_dir}...")
+
+    try:
+        with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for root, _, files in os.walk(data_dir):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    # Create arcname relative to output_prefix/data/
+                    arcname = os.path.relpath(full_path, start=os.path.dirname(data_dir))
+                    zf.write(full_path, arcname)
+        print(f"Successfully created zip file: {zip_file_path}")
+    except Exception as e:
+        print(f"Error creating zip file {zip_file_path}: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Convert simulation step HDF5 to JSON format, one file per event.")
     parser.add_argument("hdf5_file", help="Path to the input HDF5 file (from convert.py).")
     parser.add_argument("output_prefix", help="Path to the output prefix directory (e.g., /path/to/output).")
+    parser.add_argument("--compress", action="store_true", help="Compress the output 'data' directory into a zip file after conversion.")
 
     args = parser.parse_args()
 
 
     convert_hdf5_to_json(args.hdf5_file, args.output_prefix, None)
+
+    if args.compress:
+        zip_output_directory(args.output_prefix)
 
 
 if __name__ == "__main__":
