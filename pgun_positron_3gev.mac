@@ -1,0 +1,10 @@
+/run/initialize
+# Configure particle
+/gun/particle e+
+/gun/energy 3 GeV
+# x-boundary [3.07, 63.93], y-boundary[-61.85, 61.85], z-boundary[2.68, 64.32] for module 0, io_group 1,2
+/gun/position 23.07 0 4 cm
+/gun/direction 0 0 1.
+
+/analysis/setFileName pgun_positron_3gev
+/run/beamOn 1
