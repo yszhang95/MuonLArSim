@@ -1,0 +1,47 @@
+[tool.pylsp]
+# Choose the default source of configuration (if needed)
+configurationSources = ["pycodestyle"]
+
+[tool.pylsp.plugins]
+# Enable/disable individual plugins
+
+[tool.pylsp.plugins.jedi_completion]
+enabled = true
+include_params = true
+
+[tool.pylsp.plugins.jedi_hover]
+enabled = true
+
+[tool.pylsp.plugins.jedi_references]
+enabled = true
+
+[tool.pylsp.plugins.jedi_signature_help]
+enabled = true
+
+[tool.pylsp.plugins.jedi_symbols]
+enabled = true
+all_scopes = true
+
+[tool.pylsp.plugins.pylint]
+enabled = true
+args = ["--errors-only"]
+
+[tool.pylsp.plugins.pyflakes]
+enabled = true
+
+[tool.pylsp.plugins.mccabe]
+enabled = true
+threshold = 15
+
+[tool.pylsp.plugins.autopep8]
+enabled = false  # use black or yapf instead if preferred
+
+[tool.pylsp.plugins.black]
+enabled = true
+line_length = 100
+
+[tool.pylsp.plugins.yapf]
+enabled = false
+
+[tool.pylsp.plugins.rope_completion]
+enabled = true
